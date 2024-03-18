@@ -4,6 +4,7 @@ from tqdm import tqdm
 
 from utils.dice_score import multiclass_dice_coeff, dice_coeff
 
+
 @torch.inference_mode()
 def evaluate(net, dataloader, device, amp):
     net.eval()
@@ -31,9 +32,9 @@ def evaluate(net, dataloader, device, amp):
                 assert mask_true.min() >= 0 and mask_true.max() < net.n_classes, 'True mask indices should be in [0, n_classes['
                 # convert to one-hot format
                 mask_true = F.one_hot(mask_true, net.n_classes).permute(0, 3, 1, 2).float()
-                mask_pred = F.one_hot(mask_pred.argmax(dim=1), net.n_classes).permute(0, 3, 1, 2)
+                mask_pred = F.one_hot(mask_pred.argmax(dim=1), net.n_classes).permute(0, 3, 1, 2).float()
                 # compute the Dice score, ignoring background
                 dice_score += multiclass_dice_coeff(mask_pred[:, 1:], mask_true[:, 1:], reduce_batch_first=False)
-    
+
     net.train()
     return dice_score / max(num_val_batches, 1)
