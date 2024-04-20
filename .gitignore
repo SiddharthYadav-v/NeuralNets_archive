@@ -3,4 +3,4 @@
 __pycache__
 *.sh
 data
-vanilla-gan
+samples

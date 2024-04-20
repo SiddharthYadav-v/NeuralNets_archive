@@ -10,9 +10,7 @@ class Generator(nn.Module):
         self.linear_2 = nn.Linear(128, 256, bias = False)
         self.linear_3 = nn.Linear(256, 512, bias = False)
         self.linear_4 = nn.Linear(512, 1024, bias = False)
-        # self.linear_5 = nn.Linear(1024, 3 * 1024)
         self.linear_5 = nn.Linear(1024, 28 * 28, bias = False)
-        # self.unflatten = nn.Unflatten(1, (3, 32, 32))
         self.unflatten = nn.Unflatten(1, (28, 28))
     
     def forward(self, z):
@@ -29,7 +27,6 @@ class Discriminator(nn.Module):
         super().__init__()
 
         self.flatten = nn.Flatten()
-        # self.linear_1 = nn.Linear(3 * 1024, 1024)
         self.linear_1 = nn.Linear(28 * 28, 256, bias = False)
         self.linear_2 = nn.Linear(256, 128, bias = False)
         self.linear_3 = nn.Linear(128, 64, bias = False)

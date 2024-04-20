@@ -31,12 +31,9 @@ def train_gan(
     # transforms
     transform = transforms.Compose([
         transforms.ToTensor(),
-        # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
         transforms.Normalize((0.5,), (0.5,))])
 
-    # dataset and dataloader
-    # dataset = datasets.CIFAR10(root='./data', train=True, download=True,
-    #                            transform=transform)
+    # dataset and dataloader                           transform=transform)
     dataset = datasets.MNIST(root='./data', download=True, train=True,
                              transform=transform)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True,
