@@ -9,6 +9,7 @@ from torchvision.utils import save_image
 import os
 
 from gan import gan
+from dcgan import dcgan
 
 def train_gan(
     generator,
@@ -85,13 +86,15 @@ def train_gan(
         
         with torch.no_grad():
             generated_images = generator(fixed_noise)
-            save_image(generated_images.unsqueeze(1), os.path.join(sample_dir, f"epoch_{epoch}.png"), nrow=5, normalize=True)
+            save_image(generated_images, os.path.join(sample_dir, f"epoch_{epoch}.png"), nrow=5, normalize=True)
 
 if __name__ == '__main__':
     codings_size = 100
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
-    generator = gan.Generator(codings_size=codings_size)
-    discriminator = gan.Discriminator()
+    # generator = gan.Generator(codings_size=codings_size)
+    # discriminator = gan.Discriminator()
+    generator = dcgan.Generator(codings_size=codings_size)
+    discriminator = dcgan.Discriminator()
 
-    train_gan(generator, discriminator, device, sample_dir='vanilla-gan')
+    train_gan(generator, discriminator, device)
