@@ -16,7 +16,8 @@ def train_gan(
     device,
     epochs: int = 50,
     batch_size: int = 64,
-    lr: float = 1e-5,
+    lr: float = 2e-4,
+    betas: tuple = (0.5, 0.999),
     sample_dir: str = "samples",
 ):
     os.makedirs(sample_dir, exist_ok=True)
@@ -42,8 +43,9 @@ def train_gan(
                             num_workers=2, drop_last=True)
 
     # optimizers
-    optimizer_G = optim.RMSprop(generator.parameters(), lr=lr)
-    optimizer_D = optim.RMSprop(discriminator.parameters(), lr=lr)
+    optimizer_G = optim.Adam(generator.parameters(), lr=lr, betas = betas)
+    optimizer_D = optim.Adam(discriminator.parameters(), lr=lr, betas = betas)
+    fixed_noise = torch.randn((25, codings_size, )).to(device)
 
     for epoch in range(epochs):
         for i, data in enumerate(dataloader, 0):
@@ -62,7 +64,7 @@ def train_gan(
             noise = torch.randn(batch_size, codings_size).to(device)
             fake_images = generator(noise)
             fake_labels = torch.zeros(batch_size, 1).to(device)
-            fake_outputs = discriminator(fake_images).view(-1, 1)
+            fake_outputs = discriminator(fake_images.detach()).view(-1, 1)
             d_loss_fake = adversarial_loss(fake_outputs, fake_labels)
 
             # Backpropagation
@@ -72,9 +74,7 @@ def train_gan(
 
             # Train generator
             optimizer_G.zero_grad()
-            noise = torch.randn(batch_size, codings_size).to(device)
-            generated_images = generator(noise)
-            outputs = discriminator(generated_images).view(-1, 1)
+            outputs = discriminator(fake_images).view(-1, 1)
             g_loss = adversarial_loss(outputs, real_labels)
             g_loss.backward()
             optimizer_G.step()
@@ -87,9 +87,8 @@ def train_gan(
                 )
         
         with torch.no_grad():
-            noise = torch.randn(25, codings_size).to(device)
-            generated_images = generator(noise)
-            save_image(generated_images, os.path.join(sample_dir, f"epoch_{epoch}.png"), nrow=5, normalize=True)
+            generated_images = generator(fixed_noise)
+            save_image(generated_images.unsqueeze(1), os.path.join(sample_dir, f"epoch_{epoch}.png"), nrow=5, normalize=True)
 
 if __name__ == '__main__':
     codings_size = 100
