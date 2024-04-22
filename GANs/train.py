@@ -10,6 +10,7 @@ import os
 
 from gan import gan
 from dcgan import dcgan
+from cgan import cgan
 
 def train_gan(
     generator,
@@ -45,24 +46,35 @@ def train_gan(
     optimizer_D = optim.Adam(discriminator.parameters(), lr=lr, betas = betas)
     fixed_noise = torch.randn((25, codings_size, )).to(device)
 
+    def sample_images(n_row, epochs_done):
+        """Saves a grid of generated digits generated ranging from 0 to n_classes"""
+        # Sample noise
+        z = torch.randn((10 * 10, codings_size, )).to(device)
+        # Get labels ranging from 0 to n_classes for n rows
+        labels = torch.tensor([i for _ in range(10) for i in range(10)], dtype=torch.long).to(device)
+        gen_imgs = generator(z, labels)
+        save_image(gen_imgs.data, os.path.join("samples", f"Epoch_{epochs_done+1}.png"), nrow=10, normalize=True)
+
     for epoch in range(epochs):
         for i, data in enumerate(dataloader, 0):
-            real_images, _ = data
+            real_images, labels = data
             real_images = real_images.to(device)
 
             # Train discriminator
             optimizer_D.zero_grad()
 
             # Real images
+            labels = labels.to(device)
             real_labels = torch.ones(batch_size, 1).to(device)
-            real_outputs = discriminator(real_images).view(-1, 1)
+            real_outputs = discriminator(real_images, labels).view(-1, 1)
             d_loss_real = adversarial_loss(real_outputs, real_labels)
 
             # Fake images
             noise = torch.randn(batch_size, codings_size).to(device)
-            fake_images = generator(noise)
+            gen_labels = torch.randint(0, 10, (batch_size, )).to(device)
+            fake_images = generator(noise, gen_labels)
             fake_labels = torch.zeros(batch_size, 1).to(device)
-            fake_outputs = discriminator(fake_images.detach()).view(-1, 1)
+            fake_outputs = discriminator(fake_images.detach(), gen_labels).view(-1, 1)
             d_loss_fake = adversarial_loss(fake_outputs, fake_labels)
 
             # Backpropagation
@@ -72,7 +84,7 @@ def train_gan(
 
             # Train generator
             optimizer_G.zero_grad()
-            outputs = discriminator(fake_images).view(-1, 1)
+            outputs = discriminator(fake_images, gen_labels).view(-1, 1)
             g_loss = adversarial_loss(outputs, real_labels)
             g_loss.backward()
             optimizer_G.step()
@@ -84,9 +96,12 @@ def train_gan(
                     f"D loss: {d_loss.item()}, G loss: {g_loss.item()}"
                 )
         
+        # with torch.no_grad():
+        #     generated_images = generator(fixed_noise)
+        #     save_image(generated_images, os.path.join(sample_dir, f"epoch_{epoch}.png"), nrow=5, normalize=True)
+
         with torch.no_grad():
-            generated_images = generator(fixed_noise)
-            save_image(generated_images, os.path.join(sample_dir, f"epoch_{epoch}.png"), nrow=5, normalize=True)
+            sample_images(10, epoch)
 
 if __name__ == '__main__':
     codings_size = 100
@@ -94,7 +109,9 @@ if __name__ == '__main__':
     
     # generator = gan.Generator(codings_size=codings_size)
     # discriminator = gan.Discriminator()
-    generator = dcgan.Generator(codings_size=codings_size)
-    discriminator = dcgan.Discriminator()
+    # generator = dcgan.Generator(codings_size=codings_size)
+    # discriminator = dcgan.Discriminator()
+    generator = cgan.Generator(codings_size=codings_size, embeddings_size=10)
+    discriminator = cgan.Discriminator()
 
     train_gan(generator, discriminator, device)
