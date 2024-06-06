@@ -32,7 +32,7 @@ class Generator(nn.Module):
                     num_features,
                     num_features * 2,
                     is_downsampling=True,
-                    kernel_sizze=3,
+                    kernel_size=3,
                     stride=2,
                     padding=1,
                 ),
