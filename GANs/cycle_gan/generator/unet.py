@@ -7,7 +7,7 @@ from .multi_head_attention import MultiHeadSpatialSelfAttention
 
 class UNET(nn.Module):
 
-    def __init__(self, in_channels: int, ch_init: int, ch_mult: list[int], attn_layers: list[int], d_model: int):
+    def __init__(self, in_channels: int, ch_init: int, ch_mult: list[int], attn_layers: list[int]):
         """
             Backbone model for transforming images from one domain to another
         """
@@ -46,12 +46,12 @@ class UNET(nn.Module):
             ch_prev = ch_init * mult
         self.decoders = nn.ModuleList(self.decoders)
 
-        self.tail = nn.Conv2d(ch_prev, 2 * in_channels, kernel_size=3, stride=1, padding=1)
+        self.tail = nn.Conv2d(ch_prev, in_channels, kernel_size=3, stride=1, padding=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
             Input Shape: (B, C, H, W)
-            Output Shape: (B, 2 * C, H, W)
+            Output Shape: (B, C, H, W)
         """
 
         x = self.head(x)
