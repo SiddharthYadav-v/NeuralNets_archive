@@ -4,24 +4,35 @@ from torch.utils.data import DataLoader
 import torch.nn as nn
 import torch.optim as optim
 from torchvision import transforms
+# import albumentations as A
+
 from tqdm import tqdm
 from torchvision.utils import save_image
 
-from model.discriminator import Discriminator
-from model.generator import Generator
+from arch.discriminator import Discriminator
+from arch.generator import Generator
 
 from utils.data_loading import HorseZebraDataset
+from utils.load_save import *
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print(f"using device: {DEVICE}")
 
-LAMBDA_CYCLE = 0.2
-LEARNING_RATE = 2e-4
-BETAS = (0.5, 0.999)
-BATCH_SIZE = 16
-NUM_WORKERS = 2
+TRAIN_DIR = "data/train"
+VAL_DIR = "data/val"
+BATCH_SIZE = 4
+LEARNING_RATE = 1e-5
+LAMBDA_IDENTITY = 0.0
+LAMBDA_CYCLE = 10
+NUM_WORKERS = 4
 NUM_EPOCHS = 50
-
 LOAD_MODEL = False
+SAVE_MODEL = True
+CHECKPOINT_GENERATOR_H = "models/genh.pth.tar"
+CHECKPOINT_GENERATOR_Z = "models/genz.pth.tar"
+CHECKPOINT_DISCRIMINATOR_H = "models/disch.pth.tar"
+CHECKPOINT_DISCRIMINATOR_Z = "models/discz.pth.tar"
+BETAS = (0.5, 0.999)
 
 def train_fn(
     disc_H, disc_Z, gen_Z, gen_H, loader, opt_disc, opt_gen, l1, mse, d_scaler, g_scaler
@@ -73,6 +84,12 @@ def train_fn(
             cycle_zebra_loss = l1(zebra, cycle_zebra)
             cycle_horse_loss = l1(horse, cycle_horse)
 
+            # identity losses
+            # identity_zebra = gen_Z(zebra)
+            # identity_horse = gen_H(horse)
+            # identity_zebra_loss = l1(zebra, identity_zebra)
+            # identity_horse_loss = l1(horse, identity_horse)
+
             # total loss
             G_loss = (
                 loss_G_Z
@@ -115,21 +132,52 @@ if __name__=='__main__':
     L1 = nn.L1Loss()
     mse = nn.MSELoss()
 
-    transform = transforms.Compose([
-        transforms.Resize((256, 256)),
-        # transforms.HorizontalFlip(p=0.5),
-        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
-        transforms.ToTensor(),
-    ])
+    transform = transforms.Compose(
+        [
+            transforms.ToTensor(),
+            transforms.Resize((256, 256)),
+            # transforms.HorizontalFlip(p=0.5),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+            # transforms.ToTensor(),
+        ],
+        # additional_targets={"image0": "image"},
+    )
+
+    if LOAD_MODEL:
+        load_checkpoint(
+            CHECKPOINT_GENERATOR_H,
+            gen_H,
+            opt_gen,
+            LEARNING_RATE,
+        )
+        load_checkpoint(
+            CHECKPOINT_GENERATOR_Z,
+            gen_Z,
+            opt_gen,
+            LEARNING_RATE,
+        )
+        load_checkpoint(
+            CHECKPOINT_DISCRIMINATOR_H,
+            disc_H,
+            opt_disc,
+            LEARNING_RATE,
+        )
+        load_checkpoint(
+            CHECKPOINT_DISCRIMINATOR_Z,
+            disc_Z,
+            opt_disc,
+            LEARNING_RATE,
+        )
 
     dataset = HorseZebraDataset(
-        root_horse=".data/train_dir/horses",
-        root_zebra=".data/train_dir/horses",
+        root_horse=TRAIN_DIR + "/horses",
+        root_zebra=TRAIN_DIR + "/zebras",
         transform=transform,
     )
     val_dataset = HorseZebraDataset(
-        root_horse="val_dir/horses",
-        root_zebra="val_dir/zebras",
+        root_horse=VAL_DIR + "/horses",
+        root_zebra=VAL_DIR + "/zebras",
         transform=transform,
     )
     val_loader = DataLoader(
@@ -163,3 +211,9 @@ if __name__=='__main__':
             d_scaler,
             g_scaler
         )
+
+        if SAVE_MODEL:
+            save_checkpoint(gen_H, opt_gen, filename=CHECKPOINT_GENERATOR_H)
+            save_checkpoint(gen_Z, opt_gen, filename=CHECKPOINT_GENERATOR_Z)
+            save_checkpoint(disc_H, opt_disc, filename=CHECKPOINT_DISCRIMINATOR_H)
+            save_checkpoint(disc_Z, opt_disc, filename=CHECKPOINT_DISCRIMINATOR_Z)

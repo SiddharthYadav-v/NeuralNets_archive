@@ -2,8 +2,13 @@ from .parts import *
 
 class Discriminator(nn.Module):
     """
-    Discriminator architecture is:
-    c64, c128, c256, c512
+    Let Ck denote a 4 * 4 Convolution-InstanceNorm-LeakyReLU layer with
+    k filters and stride 2. Discriminator architecture is: C64-C128-C256-C512.
+
+    After the last layer, we apply a convolution to produce a 1-dimensional
+    output.
+
+    We use leaky ReLUs with a slpoe of 0.2.
     """
 
     def __init__(
@@ -26,10 +31,9 @@ class Discriminator(nn.Module):
         in_channels = features[0]
         for feature in features[1:]:
             layers.append(
-                ConvolutionalBlock(
+                ConvInstanceNormLeakyReLUBlock(
                     in_channels,
                     feature,
-                    kernel_size=4,
                     stride=1 if feature == features[-1] else 2,
                 )
             )
@@ -49,3 +53,5 @@ class Discriminator(nn.Module):
     
     def forward(self, x):
         x = self.initial_layer(x)
+
+        return torch.sigmoid(self.model(x))

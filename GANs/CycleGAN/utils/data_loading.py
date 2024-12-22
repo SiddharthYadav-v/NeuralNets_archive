@@ -26,9 +26,17 @@ class HorseZebraDataset(Dataset):
         zebra_path = os.path.join(self.root_zebra, zebra_img)
         horse_path = os.path.join(self.root_horse, horse_img)
 
-        if  self.transform:
-            augmentations = self.transform(image=zebra_img, image0=horse_img)
-            zebra_img = augmentations["image"]
-            horse_img = augmentations["image0"]
+        # if  self.transform:
+        #     augmentations = self.transform(image=zebra_img, image0=horse_img)
+        #     zebra_img = augmentations["image"]
+        #     horse_img = augmentations["image0"]
+
+        zebra_img = Image.open(zebra_path).convert("RGB")
+        horse_img = Image.open(horse_path).convert("RGB")
+
+        if self.transform:
+            zebra_img = self.transform(zebra_img)
+            horse_img = self.transform(horse_img)
+
 
         return zebra_img, horse_img
